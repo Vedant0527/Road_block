@@ -2,16 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Sparkles,
   Bot,
-  ShieldCheck,
+  ShieldAlert,
   Send,
-  AlertOctagon,
-  Flame,
+  AlertTriangle,
+  Zap,
   ArrowRight,
   Terminal,
   Layers,
-  Cpu
+  CheckCircle2,
+  Lock,
+  Flame,
+  Store,
+  DollarSign,
+  Activity,
+  ChevronRight
 } from "lucide-react";
 import { RoadblockModal } from "@/components/RoadblockModal";
 import { AuditLedgerGrid } from "@/components/AuditLedgerGrid";
@@ -24,10 +29,10 @@ export default function Home() {
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [timeline, setTimeline] = useState<any[]>([
     {
-      step: "SYSTEM_INITIALIZED",
-      title: "Roadblock Runtime Ready",
-      desc: "Grounding multi-merchant catalog (Alpha & Beta). Zero-Trust interceptor active.",
-      time: "Now"
+      step: "INIT",
+      title: "Roadblock Engine Ready",
+      desc: "Grounding multi-vendor catalog (Merchant Alpha & Beta). Zero-Trust interceptor online.",
+      time: "12:00:00"
     }
   ]);
 
@@ -53,19 +58,20 @@ export default function Home() {
     if (!text.trim() || loading) return;
     setLoading(true);
 
-    // Add prompt to timeline
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
     setTimeline((prev) => [
       {
-        step: "USER_DIRECTIVE",
-        title: "Autonomous Agent Invoked",
-        desc: `Prompt: "${text}"`,
-        time: new Date().toLocaleTimeString()
+        step: "DIRECTIVE",
+        title: "Agent Directive Received",
+        desc: `"${text}"`,
+        time: now
       },
       {
-        step: "TOOL_INVOCATION",
-        title: "Tool: search_multi_merchant_catalog",
-        desc: "Resolving items across Merchant Alpha & Merchant Beta...",
-        time: new Date().toLocaleTimeString()
+        step: "TOOL",
+        title: "Catalog Resolution",
+        desc: "Querying multi-merchant inventory & computing payee routes...",
+        time: now
       },
       ...prev
     ]);
@@ -80,10 +86,10 @@ export default function Home() {
 
       setTimeline((prev) => [
         {
-          step: "ROADBLOCK_INTERCEPT",
-          title: "Roadblock HITL Intercept Triggered",
+          step: "INTERCEPT",
+          title: "Roadblock HITL Intercept Active",
           desc: `SHA-256: ${data.payload_hash.slice(0, 16)}... | Status: PENDING_HUMAN_APPROVAL`,
-          time: new Date().toLocaleTimeString()
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         },
         ...prev
       ]);
@@ -95,9 +101,9 @@ export default function Home() {
       setTimeline((prev) => [
         {
           step: "ERROR",
-          title: "Execution Blocked",
+          title: "Execution Error",
           desc: err.message,
-          time: new Date().toLocaleTimeString()
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         },
         ...prev
       ]);
@@ -107,27 +113,26 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 pb-16">
-      {/* Top Banner & Header */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <main className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans">
+      {/* Precision Top Navbar */}
+      <header className="border-b border-[#1c2638] bg-[#0b0f17]/95 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center font-black text-white text-base shadow-lg shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-mono font-bold text-white text-xs shadow-sm">
               RB
             </div>
-            <div>
-              <h1 className="font-bold text-sm tracking-tight text-white flex items-center gap-2">
-                Roadblock
-                <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                  Zero-Trust Commerce
-                </span>
-              </h1>
-              <p className="text-[11px] text-slate-400">Autonomous Multi-Merchant Commerce & Settlement Platform</p>
+            <div className="flex items-center gap-2.5">
+              <span className="font-semibold text-sm tracking-tight text-white font-mono">
+                ROADBLOCK
+              </span>
+              <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-[#141b27] text-slate-400 border border-[#1c2638]">
+                ZERO-TRUST COMMERCE PLATFORM
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e131d] border border-[#1c2638] text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>PAYPAL ORDERS v2 SANDBOX</span>
             </div>
@@ -135,21 +140,51 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content Workspace */}
-      <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
-        {/* 2-Column Grid: Left Panel (Presets & Agent Timeline) + Right Panel (Active Session & Quick Specs) */}
+      {/* Main Workspace Layout */}
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 flex-1 w-full">
+        {/* Metric / System Status Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div className="text-slate-400 font-mono text-[10px] uppercase">Policy Gate</div>
+              <div className="text-sm font-semibold text-white mt-0.5">SHA-256 Sealed</div>
+            </div>
+            <Lock className="w-4 h-4 text-blue-400" />
+          </div>
+          <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div className="text-slate-400 font-mono text-[10px] uppercase">Settlement Cut</div>
+              <div className="text-sm font-semibold text-white mt-0.5">5.0% Platform Fee</div>
+            </div>
+            <DollarSign className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div className="text-slate-400 font-mono text-[10px] uppercase">Merchants Active</div>
+              <div className="text-sm font-semibold text-white mt-0.5">Alpha & Beta</div>
+            </div>
+            <Store className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div className="text-slate-400 font-mono text-[10px] uppercase">Agent Capture</div>
+              <div className="text-sm font-semibold text-rose-400 mt-0.5">HARD-BLOCKED</div>
+            </div>
+            <ShieldAlert className="w-4 h-4 text-rose-400" />
+          </div>
+        </div>
+
+        {/* 2-Column Core Architecture: Presets & Console (7 Cols) + Architecture (5 Cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Panel: Autonomous Agent & Quick Presets (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Quick Demo Presets */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300">
-                    Judge & Demo 1-Click Execution Presets
-                  </h3>
-                </div>
+          {/* Left Panel: Presets + Interactive Agent Terminal (7 cols) */}
+          <div className="lg:col-span-7 space-y-5">
+            {/* 1-Click Verification Presets */}
+            <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-[#1c2638] pb-2">
+                <span className="font-mono text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                  Test Scenarios (1-Click Presets)
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">JUDGING SUITE</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -157,16 +192,14 @@ export default function Home() {
                 <button
                   onClick={() => handleSendPrompt("Source Enterprise GPU Node (Seller Alpha) + Edge AI Accelerator (Seller Beta)")}
                   disabled={loading}
-                  className="p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 rounded-xl text-left transition space-y-1.5 group"
+                  className="p-3 bg-[#080b11] hover:bg-[#0e131d] border border-[#1c2638] hover:border-blue-500/50 rounded-lg text-left transition group space-y-1"
                 >
-                  <div className="flex items-center justify-between text-xs font-semibold text-white group-hover:text-blue-400">
-                    <span className="flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-blue-400" /> Multi-Vendor
-                    </span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-200 group-hover:text-blue-400">
+                    <span className="font-mono text-[11px]">01 / MULTI-VENDOR</span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
                   </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-2">
-                    Source GPU Node (Alpha) + LiDAR Sensor (Beta). Passes guardrails -&gt; Triggers HITL Modal.
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    GPU Node (Alpha) + LiDAR (Beta). Triggers Roadblock HITL Modal.
                   </p>
                 </button>
 
@@ -174,83 +207,81 @@ export default function Home() {
                 <button
                   onClick={() => handleSendPrompt("Attempt Over-Budget Autonomous Purchase ($2,500 Cluster)")}
                   disabled={loading}
-                  className="p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition space-y-1.5 group"
+                  className="p-3 bg-[#080b11] hover:bg-[#0e131d] border border-[#1c2638] hover:border-amber-500/50 rounded-lg text-left transition group space-y-1"
                 >
-                  <div className="flex items-center justify-between text-xs font-semibold text-white group-hover:text-amber-400">
-                    <span className="flex items-center gap-1.5">
-                      <AlertOctagon className="w-3.5 h-3.5 text-amber-400" /> Spend Cap
-                    </span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-200 group-hover:text-amber-400">
+                    <span className="font-mono text-[11px]">02 / SPEND CAP</span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
                   </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-2">
-                    Attempt over-budget cluster purchase ($2,500). Triggers Roadblock Hard Spend Cap Block.
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    Cluster order over $1,000. Triggers Hard Spend Cap Rejection.
                   </p>
                 </button>
 
                 {/* Preset 3 */}
                 <button
-                  onClick={() => {
-                    handleSendPrompt("Simulate Prompt-Injection Cart Tampering (+$50 Drift)");
-                  }}
+                  onClick={() => handleSendPrompt("Simulate Prompt-Injection Cart Tampering (+$50 Drift)")}
                   disabled={loading}
-                  className="p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-rose-500/50 rounded-xl text-left transition space-y-1.5 group"
+                  className="p-3 bg-[#080b11] hover:bg-[#0e131d] border border-[#1c2638] hover:border-rose-500/50 rounded-lg text-left transition group space-y-1"
                 >
-                  <div className="flex items-center justify-between text-xs font-semibold text-white group-hover:text-rose-400">
-                    <span className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-rose-400" /> Hash Tamper
-                    </span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-200 group-hover:text-rose-400">
+                    <span className="font-mono text-[11px]">03 / HASH TAMPER</span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
                   </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-2">
-                    Inject +$50 price drift to demonstrate instant cryptographic SHA-256 seal mismatch alert.
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    Inject +$50 drift to demonstrate SHA-256 mismatch lockout.
                   </p>
                 </button>
               </div>
             </div>
 
-            {/* Custom Interactive Agent Terminal */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            {/* Agent Command Terminal */}
+            <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Bot className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-bold text-sm text-white">Autonomous Commerce Agent Console</h3>
+                  <Terminal className="w-4 h-4 text-blue-400" />
+                  <span className="font-mono text-xs uppercase tracking-wider text-slate-200 font-semibold">
+                    Autonomous Agent Terminal
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  ONLINE
-                </span>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>READY</span>
+                </div>
               </div>
 
+              {/* Input Form */}
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSendPrompt(prompt)}
-                  placeholder="Ask the agent to procure hardware across Alpha and Beta..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans"
+                  placeholder="e.g. Procure hardware accelerator from Alpha and robotic sensor from Beta..."
+                  className="flex-1 bg-[#080b11] border border-[#1c2638] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono transition"
                 />
                 <button
                   onClick={() => handleSendPrompt(prompt)}
                   disabled={loading}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-40"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Execute</span>
+                  <span>Dispatch</span>
                 </button>
               </div>
 
-              {/* Chat Timeline / Tool Trace */}
-              <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 max-h-72 overflow-y-auto space-y-3 font-mono text-xs">
-                <div className="text-slate-500 text-[10px] uppercase font-semibold flex items-center gap-1.5 border-b border-slate-900 pb-2">
-                  <Terminal className="w-3 h-3 text-blue-400" />
-                  <span>Agent Execution Trace & Tool Router</span>
+              {/* Execution Trace */}
+              <div className="bg-[#080b11] border border-[#1c2638] rounded-lg p-3 max-h-56 overflow-y-auto space-y-2.5 font-mono text-xs">
+                <div className="text-slate-500 text-[10px] uppercase tracking-wider flex items-center justify-between border-b border-[#1c2638] pb-1.5">
+                  <span>EXECUTION LOG</span>
+                  <span>LATENCY: &lt;15ms</span>
                 </div>
                 {timeline.map((item, i) => (
                   <div key={i} className="flex items-start gap-2.5 text-xs">
-                    <span className="text-slate-600 select-none text-[10px] pt-0.5">{item.time}</span>
+                    <span className="text-slate-500 text-[10px] shrink-0 pt-0.5">{item.time}</span>
                     <div className="space-y-0.5">
-                      <div className="text-slate-200 font-semibold">{item.title}</div>
-                      <div className="text-[11px] text-slate-400">{item.desc}</div>
+                      <div className="text-slate-200 font-semibold text-[11px]">{item.title}</div>
+                      <div className="text-slate-400 text-[10px] leading-relaxed">{item.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -258,64 +289,71 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Panel: Architecture & Security Invariants (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Zero-Trust Interceptor Summary */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-              <div className="flex items-center gap-2 text-amber-400 font-semibold border-b border-slate-800 pb-2.5 text-xs">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Roadblock Policy Guardrails</span>
+          {/* Right Panel: Architecture Guardrails (5 cols) */}
+          <div className="lg:col-span-5 space-y-5">
+            <div className="bg-[#0b0f17] border border-[#1c2638] rounded-xl p-4 space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#1c2638] pb-2.5">
+                <ShieldAlert className="w-4 h-4 text-amber-400" />
+                <span className="font-mono text-xs uppercase tracking-wider text-slate-200 font-semibold">
+                  Zero-Trust Architecture Invariants
+                </span>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                  <div className="font-semibold text-white">1. Canonical SHA-256 Seal</div>
-                  <p className="text-slate-400 text-[11px]">
-                    Every purchase order JSON payload is serialized with deterministic key-sorting and hashed. Any mutation of item quantities or pricing breaks cryptographic verification.
+              <div className="space-y-2.5 text-xs">
+                <div className="p-3 bg-[#080b11] rounded-lg border border-[#1c2638] space-y-1">
+                  <div className="font-medium text-slate-200 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="text-blue-400">01 /</span> SHA-256 Hash Immutability
+                  </div>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Cart payload keys are deterministically sorted and hashed. Any item price or quantity tampering invalidates the signature instantly.
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                  <div className="font-semibold text-white">2. Multi-Vendor Payee Routing</div>
-                  <p className="text-slate-400 text-[11px]">
-                    Native PayPal Orders v2 routing per purchase unit to Merchant Alpha (`6XBYJ7MLG5LZY`) and Merchant Beta (`DJL9F2ET8DTLE`) with 5% platform partner settlement cut.
+                <div className="p-3 bg-[#080b11] rounded-lg border border-[#1c2638] space-y-1">
+                  <div className="font-medium text-slate-200 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="text-amber-400">02 /</span> Multi-Payee Orders v2 Routing
+                  </div>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Native PayPal purchase units routed to Alpha (`6XBYJ7MLG5LZY`) and Beta (`DJL9F2ET8DTLE`) with 5% platform fee deduction.
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                  <div className="font-semibold text-white">3. Zero Autonomous Payment Capture</div>
-                  <p className="text-slate-400 text-[11px]">
-                    Agent execution halts unconditionally at `PENDING_HUMAN_APPROVAL`. A human must sign the nonced challenge in the Roadblock modal before PayPal creation.
+                <div className="p-3 bg-[#080b11] rounded-lg border border-[#1c2638] space-y-1">
+                  <div className="font-medium text-slate-200 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="text-rose-400">03 /</span> Zero Autonomous Capture
+                  </div>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    The AI agent has zero payment capture credentials. Execution halts unconditionally at `PENDING_HUMAN_APPROVAL` until signed in the modal.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Re-Open Modal Shortcut if session is active */}
+            {/* Quick Modal Re-Open if active */}
             {activeSession && (
-              <div className="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-800/40 rounded-2xl p-4 flex items-center justify-between">
+              <div className="p-3.5 bg-[#0e131d] border border-[#27354d] rounded-xl flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Active Roadblock Intercept</div>
-                  <div className="text-[11px] text-blue-300 font-mono">{activeSession.roadblock_id}</div>
+                  <div className="text-xs font-semibold text-slate-200">Pending Authorization</div>
+                  <div className="text-[11px] font-mono text-blue-400 truncate max-w-[180px]">{activeSession.roadblock_id}</div>
                 </div>
                 <button
                   onClick={() => setModalOpen(true)}
                   className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition"
                 >
-                  View Roadblock
+                  Open Interceptor
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Bottom Panel: Live Settlement Ledger (AG Grid) */}
+        {/* Bottom Section: AG Grid Settlement & Audit Ledger */}
         <div className="pt-2">
           <AuditLedgerGrid entries={ledgerEntries} onRefresh={fetchLedger} />
         </div>
       </div>
 
-      {/* Roadblock Cryptographic Interceptor Modal */}
+      {/* Roadblock Security Modal */}
       <RoadblockModal
         sessionData={activeSession}
         isOpen={modalOpen}
