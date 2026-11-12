@@ -82,6 +82,9 @@ def deterministic_intent_parser(prompt: str) -> list[dict[str, Any]]:
         beta_default = next(i for i in CATALOG if "sensor" in i.category.lower())
         selected = [alpha_default, beta_default]
 
+    is_over_budget_demo = any(k in p for k in ["2,500", "2500", "over-budget", "over budget", "massive"])
+    qty_multiplier = 5 if is_over_budget_demo else 1
+
     return [
         {
             "id": i.id,
@@ -91,7 +94,7 @@ def deterministic_intent_parser(prompt: str) -> list[dict[str, Any]]:
             "merchant_id": i.merchant_id,
             "merchant_name": i.merchant_name,
             "category": i.category,
-            "quantity": 1
+            "quantity": qty_multiplier
         }
         for i in selected
     ]

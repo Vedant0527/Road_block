@@ -73,8 +73,20 @@ async def agent_chat(req: ChatRequest):
 # 4. Roadblock approval endpoint
 @app.post("/api/roadblock/{roadblock_id}/approve")
 async def approve_roadblock(roadblock_id: str, req: ApproveRequest):
-    """Verifies SHA-256 hash immutability and issues single-use verification_nonce."""
+    """Verifies SHA-256 hash immutability (both client hash and live payload) and issues single-use verification_nonce."""
     try:
+        if roadblock_id in ROADBLOCK_STORE:
+            session = ROADBLOCK_STORE[roadblock_id]
+            live_hash = compute_canonical_hash(session.raw_payload)
+            if live_hash != session.payload_hash:
+                record_audit_entry(
+                    event_type="ROADBLOCK_TAMPER_BLOCKED",
+                    roadblock_id=roadblock_id,
+                    payload_hash=live_hash,
+                    details={"error": "In-memory payload was tampered after session creation."}
+                )
+                raise ValueError("Payload hash mismatch! Tampering detected: live payload diverges from sealed SHA-256 hash.")
+
         result = approve_roadblock_session(roadblock_id, req.client_payload_hash)
         record_audit_entry(
             event_type="ROADBLOCK_NONCE_MINTED",
@@ -92,8 +104,9 @@ async def approve_roadblock(roadblock_id: str, req: ApproveRequest):
 @app.post("/api/roadblock/{roadblock_id}/tamper")
 async def tamper_roadblock(roadblock_id: str):
     """
-    Demo endpoint that intentionally alters item price by +$50 to demonstrate
-    Roadblock SHA-256 hash mismatch blocking in the live demo!
+    Demo endpoint that intentionally alters item price by +$50 in raw_payload
+    while keeping session.payload_hash sealed at its original value,
+    guaranteeing a SHA-256 hash mismatch block!
     """
     if roadblock_id not in ROADBLOCK_STORE:
         raise HTTPException(status_code=404, detail="Roadblock session not found.")
@@ -101,7 +114,7 @@ async def tamper_roadblock(roadblock_id: str):
     session = ROADBLOCK_STORE[roadblock_id]
     original_hash = session.payload_hash
 
-    # Tamper payload: increase first purchase unit price by $50.00
+    # Tamper raw_payload in-place: increase first purchase unit price by $50.00
     if "purchase_units" in session.raw_payload and len(session.raw_payload["purchase_units"]) > 0:
         unit = session.raw_payload["purchase_units"][0]
         cur_val = float(unit["amount"]["value"])
@@ -110,10 +123,11 @@ async def tamper_roadblock(roadblock_id: str):
         if "item_total" in unit["amount"].get("breakdown", {}):
             unit["amount"]["breakdown"]["item_total"]["value"] = f"{tampered_val:.2f}"
         if unit.get("items"):
-            unit["items"][0]["unit_amount"]["value"] = f"{float(unit['items'][0]['unit_amount']['value']) + 50.0:.2f}"
+            cur_item_val = float(unit['items'][0]['unit_amount']['value'])
+            unit["items"][0]["unit_amount"]["value"] = f"{cur_item_val + 50.0:.2f}"
 
     new_tampered_hash = compute_canonical_hash(session.raw_payload)
-    session.payload_hash = new_tampered_hash
+    # DO NOT overwrite session.payload_hash! Keep it sealed so live hash != sealed hash.
 
     record_audit_entry(
         event_type="DEMO_PAYLOAD_TAMPER_TRIGGERED",
@@ -122,7 +136,8 @@ async def tamper_roadblock(roadblock_id: str):
         details={
             "original_hash": original_hash,
             "tampered_hash": new_tampered_hash,
-            "tamper_delta": "+$50.00"
+            "tamper_delta": "+$50.00",
+            "roadblock_status": "BLOCKED_HASH_MISMATCH"
         }
     )
 
@@ -131,7 +146,7 @@ async def tamper_roadblock(roadblock_id: str):
         "roadblock_id": roadblock_id,
         "original_hash": original_hash,
         "tampered_hash": new_tampered_hash,
-        "message": "Payload price artificially altered by +$50.00. Approving with original hash will now FAIL."
+        "message": "Payload price artificially altered by +$50.00. Live payload hash now diverges from sealed session hash!"
     }
 
 # 6. PayPal checkout session creation (Requires valid roadblock_id + nonce)
