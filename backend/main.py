@@ -149,6 +149,43 @@ async def tamper_roadblock(roadblock_id: str):
         "message": "Payload price artificially altered by +$50.00. Live payload hash now diverges from sealed session hash!"
     }
 
+# 5b. Revert tamper endpoint
+@app.post("/api/roadblock/{roadblock_id}/revert")
+async def revert_roadblock_tamper(roadblock_id: str):
+    """Reverts any price tampering back to original sealed values."""
+    if roadblock_id not in ROADBLOCK_STORE:
+        raise HTTPException(status_code=404, detail="Roadblock session not found.")
+
+    session = ROADBLOCK_STORE[roadblock_id]
+    if "purchase_units" in session.raw_payload and len(session.raw_payload["purchase_units"]) > 0:
+        unit = session.raw_payload["purchase_units"][0]
+        cur_val = float(unit["amount"]["value"])
+        reverted_val = max(0.0, cur_val - 50.00)
+        unit["amount"]["value"] = f"{reverted_val:.2f}"
+        if "item_total" in unit["amount"].get("breakdown", {}):
+            unit["amount"]["breakdown"]["item_total"]["value"] = f"{reverted_val:.2f}"
+        if unit.get("items"):
+            cur_item_val = float(unit['items'][0]['unit_amount']['value'])
+            unit["items"][0]["unit_amount"]["value"] = f"{max(0.0, cur_item_val - 50.0):.2f}"
+
+    reverted_hash = compute_canonical_hash(session.raw_payload)
+    record_audit_entry(
+        event_type="DEMO_PAYLOAD_TAMPER_REVERTED",
+        roadblock_id=roadblock_id,
+        payload_hash=reverted_hash,
+        details={
+            "status": "REVERTED_TO_SEALED",
+            "roadblock_status": "PASSED"
+        }
+    )
+    return {
+        "status": "RESTORED",
+        "roadblock_id": roadblock_id,
+        "payload_hash": session.payload_hash,
+        "live_hash": reverted_hash,
+        "is_matching": reverted_hash == session.payload_hash
+    }
+
 # 6. PayPal checkout session creation (Requires valid roadblock_id + nonce)
 @app.post("/api/checkout/create-order")
 async def checkout_create_order(req: CheckoutCreateRequest):

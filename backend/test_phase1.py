@@ -1,4 +1,6 @@
 import pytest
+from httpx import AsyncClient, ASGITransport
+from main import app
 from catalog import search_catalog, CATALOG, MERCHANT_ALPHA_ID, MERCHANT_BETA_ID
 from roadblock_engine import (
     create_roadblock_session,
@@ -105,4 +107,68 @@ def test_policy_budget_exceeded():
     assert session.policy_checks.budget_ok is False
     with pytest.raises(PermissionError, match="One or more policy guardrails failed"):
         approve_roadblock_session(session.roadblock_id, session.payload_hash)
+
+@pytest.mark.asyncio
+async def test_three_judging_presets_end_to_end():
+    """Verify all 3 judging presets work end-to-end and record correct ledger statuses."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # Preset 1: Multi-Vendor Normal Flow
+        r1 = await ac.post("/api/agent/chat", json={
+            "prompt": "Source Enterprise GPU Node (Seller Alpha) + Edge AI Accelerator (Seller Beta)"
+        })
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert d1["policy_checks"]["budget_ok"] is True
+        assert d1["status"] == "PENDING_HUMAN_APPROVAL"
+        assert len(d1["merchant_splits"]) == 2
+
+        a1 = await ac.post(f"/api/roadblock/{d1['roadblock_id']}/approve", json={
+            "client_payload_hash": d1["payload_hash"]
+        })
+        assert a1.status_code == 200
+        assert a1.json()["verification_nonce"].startswith("NONCE-")
+
+        # Preset 2: Spend Cap Over-Budget Block ($2,500 Cluster)
+        r2 = await ac.post("/api/agent/chat", json={
+            "prompt": "Attempt Over-Budget Autonomous Purchase ($2,500 Cluster)"
+        })
+        assert r2.status_code == 200
+        d2 = r2.json()
+        assert d2["policy_checks"]["budget_ok"] is False
+        assert d2["policy_checks"]["total_amount"] > 1000.0
+        assert all(item["quantity"] == 5 for item in d2["selected_items"])
+
+        a2 = await ac.post(f"/api/roadblock/{d2['roadblock_id']}/approve", json={
+            "client_payload_hash": d2["payload_hash"]
+        })
+        assert a2.status_code == 403
+
+        # Preset 3: SHA-256 Hash Tamper Block
+        r3 = await ac.post("/api/agent/chat", json={
+            "prompt": "Simulate Prompt-Injection Cart Tampering (+$50 Drift)"
+        })
+        assert r3.status_code == 200
+        d3 = r3.json()
+        sealed_hash = d3["payload_hash"]
+
+        t3 = await ac.post(f"/api/roadblock/{d3['roadblock_id']}/tamper")
+        assert t3.status_code == 200
+        t3_data = t3.json()
+        assert t3_data["original_hash"] == sealed_hash
+        assert t3_data["tampered_hash"] != sealed_hash
+
+        # Approve with original sealed hash must fail (400) because live payload was tampered
+        a3 = await ac.post(f"/api/roadblock/{d3['roadblock_id']}/approve", json={
+            "client_payload_hash": sealed_hash
+        })
+        assert a3.status_code == 400
+        assert "Tampering detected" in a3.json()["detail"]
+
+        # Verify ledger recorded events
+        ledger = await ac.get("/api/audit/ledger")
+        assert ledger.status_code == 200
+        event_types = [e["event_type"] for e in ledger.json()]
+        assert "ROADBLOCK_TAMPER_BLOCKED" in event_types
+        assert "DEMO_PAYLOAD_TAMPER_TRIGGERED" in event_types
+        assert "ROADBLOCK_NONCE_MINTED" in event_types
 

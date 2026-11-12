@@ -82,7 +82,9 @@ def deterministic_intent_parser(prompt: str) -> list[dict[str, Any]]:
         beta_default = next(i for i in CATALOG if "sensor" in i.category.lower())
         selected = [alpha_default, beta_default]
 
-    is_over_budget_demo = any(k in p for k in ["2,500", "2500", "over-budget", "over budget", "massive"])
+    is_over_budget_demo = any(k in p for k in ["2,500", "2500", "over-budget", "over budget", "massive"]) or (
+        "cluster" in p and any(k in p for k in ["$", "over", "limit", "exceed"])
+    )
     qty_multiplier = 5 if is_over_budget_demo else 1
 
     return [
@@ -118,6 +120,8 @@ async def orchestrate_agent_prompt(prompt: str) -> AgentPlanResult:
         m_name = item.get("merchant_name", item.get("merchant_id"))
         splits[m_name] = round(splits.get(m_name, 0.0) + (float(item["price"]) * int(item.get("quantity", 1))), 2)
 
+    policy_passed = roadblock.policy_checks.budget_ok and roadblock.policy_checks.vendor_count_ok
+
     # Record in Audit Ledger
     record_audit_entry(
         event_type="AGENT_ORDER_PROPOSAL_INTERCEPTED",
@@ -126,7 +130,8 @@ async def orchestrate_agent_prompt(prompt: str) -> AgentPlanResult:
         merchant_splits=splits,
         details={
             "prompt": prompt,
-            "policy_passed": roadblock.policy_checks.budget_ok and roadblock.policy_checks.vendor_count_ok,
+            "policy_passed": policy_passed,
+            "roadblock_status": "PASSED" if policy_passed else "BLOCKED_BUDGET",
             "item_count": len(selected_items)
         }
     )
