@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: roadblock-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    envVars:
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: MERCHANT_ALPHA_ID
+        sync: false
+      - key: MERCHANT_BETA_ID
+        sync: false
+      - key: PLATFORM_FEE_PERCENT
+        value: "0.05"
+      - key: MAX_SPEND_LIMIT
+        value: "1000.00"
+      - key: MAX_VENDOR_LIMIT
+        value: "5"
+
+  - type: web
+    name: roadblock-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    rootDir: frontend
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: roadblock-backend
+          type: web
+          property: host
+

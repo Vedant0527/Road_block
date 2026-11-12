@@ -1,0 +1,188 @@
+{
+  "info": {
+    "_postman_id": "a9c7b941-8720-4bd2-9b2d-c192d6e326b4",
+    "name": "Roadblock Autonomous Commerce & Settlement API",
+    "description": "Automated Newman test suite verifying multi-merchant cart generation, Roadblock zero-trust policy enforcement, and live PayPal Orders v2 routing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Environment is SANDBOX', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.environment).to.eql('SANDBOX');",
+              "    pm.expect(jsonData.status).to.eql('healthy');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "2. Multi-Merchant Catalog Query",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Catalog returns multi-merchant items', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.length).to.be.above(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/catalog",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "catalog"]
+        }
+      }
+    },
+    {
+      "name": "3. Agent Plan Order (Multi-Vendor Hard-Block)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test('Approval status is PENDING_HUMAN_APPROVAL', function () {",
+              "    pm.expect(jsonData.approval.status).to.eql('PENDING_HUMAN_APPROVAL');",
+              "    pm.expect(jsonData.approval.nonce).to.match(/^rb_/);",
+              "    pm.expect(jsonData.approval.payload_hash.length).to.eql(64);",
+              "});",
+              "pm.test('Cart spans multiple merchants', function () {",
+              "    pm.expect(jsonData.cart.merchants.length).to.be.above(1);",
+              "});",
+              "pm.environment.set('draft_id', jsonData.draft_id);",
+              "pm.environment.set('nonce', jsonData.approval.nonce);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Bundle an edge accelerator from Acme and hacker coffee from CyberCafe for our sprint\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/agent/plan",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "agent", "plan"]
+        }
+      }
+    },
+    {
+      "name": "4. Roadblock Policy: Reject Invalid Nonce",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"draft_id\": \"{{draft_id}}\",\n  \"nonce\": \"rb_forged_invalid_nonce\",\n  \"user_action\": \"APPROVE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/drafts/{{draft_id}}/approve",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "drafts", "{{draft_id}}", "approve"]
+        }
+      }
+    },
+    {
+      "name": "5. Roadblock Policy: Legitimate Approval & PayPal Dispatch",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test('Order is APPROVED and dispatches to PayPal', function () {",
+              "    pm.expect(jsonData.status).to.eql('APPROVED');",
+              "    pm.expect(jsonData.paypal_order_id).to.not.be.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"draft_id\": \"{{draft_id}}\",\n  \"nonce\": \"{{nonce}}\",\n  \"user_action\": \"APPROVE\",\n  \"user_signature\": \"sig_ed25519_verified_by_user\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/drafts/{{draft_id}}/approve",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "drafts", "{{draft_id}}", "approve"]
+        }
+      }
+    }
+  ]
+}
+

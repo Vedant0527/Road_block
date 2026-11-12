@@ -1,0 +1,219 @@
+{
+  "info": {
+    "_postman_id": "b3e941a8-9d41-4c7b-a012-7d8847e09ef2",
+    "name": "PayPal Agentic Multi-Seller Settlement Collection",
+    "description": "Comprehensive automated test suite for Roadblock Zero-Trust Multi-Merchant Commerce Platform on PayPal Orders v2.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Healthcheck",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Healthcheck returns 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.eql('healthy');",
+              "    pm.expect(data.mode).to.eql('SANDBOX');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/healthz",
+          "host": ["{{baseUrl}}"],
+          "path": ["healthz"]
+        }
+      }
+    },
+    {
+      "name": "2. Multi-Merchant Catalog Grounding",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Catalog returns 200 OK with items', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var items = pm.response.json();",
+              "    pm.expect(items.length).to.be.above(0);",
+              "    var merchants = new Set(items.map(function(i) { return i.merchant_name; }));",
+              "    pm.expect(merchants.size).to.be.above(1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/catalog",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "catalog"]
+        }
+      }
+    },
+    {
+      "name": "3. Agent Draft Order & Roadblock Interception",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var data = pm.response.json();",
+              "pm.test('Payload hash is 64-char SHA-256 hex', function () {",
+              "    pm.expect(data.payload_hash).to.match(/^[a-f0-9]{64}$/);",
+              "});",
+              "pm.test('Status is PENDING_HUMAN_APPROVAL', function () {",
+              "    pm.expect(data.status).to.eql('PENDING_HUMAN_APPROVAL');",
+              "});",
+              "pm.test('Cart spans multiple vendors', function () {",
+              "    pm.expect(Object.keys(data.merchant_splits).length).to.be.above(1);",
+              "});",
+              "pm.environment.set('roadblock_id', data.roadblock_id);",
+              "pm.environment.set('payload_hash', data.payload_hash);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Procure an Enterprise GPU cluster from Seller Alpha and LiDAR sensor from Seller Beta\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/agent/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "agent", "chat"]
+        }
+      }
+    },
+    {
+      "name": "4. Roadblock Nonce Signing",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var data = pm.response.json();",
+              "pm.test('Verification nonce starts with NONCE-', function () {",
+              "    pm.expect(data.verification_nonce).to.match(/^NONCE-/);",
+              "});",
+              "pm.test('Status is APPROVED', function () {",
+              "    pm.expect(data.status).to.eql('APPROVED');",
+              "});",
+              "pm.environment.set('verification_nonce', data.verification_nonce);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"client_payload_hash\": \"{{payload_hash}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/roadblock/{{roadblock_id}}/approve",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roadblock", "{{roadblock_id}}", "approve"]
+        }
+      }
+    },
+    {
+      "name": "5. Tamper Protection Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Tampered checkout execution returns 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roadblock_id\": \"{{roadblock_id}}\",\n  \"roadblock_nonce\": \"NONCE-FORGED-TAMPERED-TOKEN\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/checkout/create-order",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "checkout", "create-order"]
+        }
+      }
+    },
+    {
+      "name": "6. Audit Ledger Verification",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Audit ledger returns 200 OK with recorded events', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var entries = pm.response.json();",
+              "    pm.expect(entries.length).to.be.above(0);",
+              "    var hasRoadblockEvent = entries.some(function(e) { return e.event_type.indexOf('ROADBLOCK') !== -1 || e.event_type.indexOf('AGENT') !== -1; });",
+              "    pm.expect(hasRoadblockEvent).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/audit/ledger",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "audit", "ledger"]
+        }
+      }
+    }
+  ]
+}
+
