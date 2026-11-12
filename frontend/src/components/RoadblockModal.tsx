@@ -38,16 +38,8 @@ export const RoadblockModal: React.FC<RoadblockModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionData?.initial_tamper) {
-      setTamperedState(sessionData.initial_tamper);
-      setErrorMsg("PAYLOAD TAMPER DETECTED: Price altered by +$50.00. Live payload diverges from sealed SHA-256 seal.");
-    } else if (sessionData?.policy_checks && !sessionData.policy_checks.budget_ok) {
-      setTamperedState(null);
-      setErrorMsg(`SPEND CAP EXCEEDED: Total $${sessionData.policy_checks.total_amount?.toFixed(2)} exceeds $1,000.00 Roadblock policy limit.`);
-    } else {
-      setTamperedState(null);
-      setErrorMsg(null);
-    }
+    setTamperedState(null);
+    setErrorMsg(null);
     setApprovalResult(null);
     setCreatedOrder(null);
     setSigning(false);

@@ -94,26 +94,6 @@ export default function Home() {
         ...prev
       ]);
 
-      const lowerPrompt = text.toLowerCase();
-      if (lowerPrompt.includes("tamper") || lowerPrompt.includes("drift")) {
-        const tamperRes = await fetch(`http://localhost:8000/api/roadblock/${data.roadblock_id}/tamper`, {
-          method: "POST"
-        });
-        const tamperData = await tamperRes.json();
-        data.initial_tamper = tamperData;
-        setTimeline((prev) => [
-          {
-            step: "TAMPER_ALERT",
-            title: "SHA-256 Hash Mismatch Blocked",
-            desc: "+$50.00 drift injected. Live hash diverges from sealed hash.",
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          },
-          ...prev
-        ]);
-      } else {
-        data.initial_tamper = null;
-      }
-
       setActiveSession(data);
       setModalOpen(true);
       fetchLedger();
@@ -249,7 +229,7 @@ export default function Home() {
                     <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
                   </div>
                   <p className="text-[11px] text-slate-400 leading-tight">
-                    Inject +$50 drift to demonstrate SHA-256 mismatch lockout.
+                    Drafts multi-merchant cart. Click &apos;Simulate Tamper&apos; in modal to test block.
                   </p>
                 </button>
               </div>
@@ -375,14 +355,11 @@ export default function Home() {
 
       {/* Roadblock Security Modal */}
       <RoadblockModal
-        key={activeSession?.roadblock_id || "roadblock-modal"}
+        key={activeSession?.roadblock_id || "modal"}
         sessionData={activeSession}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSessionUpdated={(updatedData) => {
-          if (updatedData?.tampered_hash) {
-            setActiveSession((prev: any) => prev ? { ...prev, initial_tamper: updatedData } : prev);
-          }
+        onSessionUpdated={() => {
           fetchLedger();
         }}
       />

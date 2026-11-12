@@ -85,7 +85,7 @@ async def approve_roadblock(roadblock_id: str, req: ApproveRequest):
                     payload_hash=live_hash,
                     details={"error": "In-memory payload was tampered after session creation."}
                 )
-                raise ValueError("Payload hash mismatch! Tampering detected: live payload diverges from sealed SHA-256 hash.")
+                raise ValueError("Payload hash mismatch! Tampering detected.")
 
         result = approve_roadblock_session(roadblock_id, req.client_payload_hash)
         record_audit_entry(
